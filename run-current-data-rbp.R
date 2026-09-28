@@ -9,7 +9,7 @@ if(Sys.getenv("CI") == "") {
   # Normal usage
     message("Please select any file in Dropbox top level")
     DROPBOX <- dirname(file.choose())
-    SITES <- readline("Sites to plot:") # Enter CB, TMP, LE, DLG
+    SITES <- readline("Sites to plot:") # Enter LE or DLG
 } else {
   # Running on GitHub Actions
   message("Running on GitHub Actions!")
