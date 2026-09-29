@@ -1,5 +1,5 @@
-# From https://docs.google.com/spreadsheets/d/1O4sHvj2FO7EcWEm3WpKEZhFubGn8HCcUsz9EFXhQTXM/edit?gid=0#gid=0,,
-# The OWC data needs to be fixed -- see #334,,
+# From Synop https://docs.google.com/spreadsheets/d/1O4sHvj2FO7EcWEm3WpKEZhFubGn8HCcUsz9EFXhQTXM/edit?gid=0#gid=0 and DLG https://docs.google.com/spreadsheets/d/1kL_bkIf0SlKVKUNQEDZDIbRQ0UiiBgaWeZ6BUnpoIcs/edit?gid=0#gid=0,,,,,,,,,,,,
+# The OWC data needs to be fixed -- see #334,,,,,,,,,,,,
 Instrument_ID,serial_number,Site,Plot,transect_location,lat,long,gps_notes,well_top_to_ground_cm,ring_to_pressure_sensor_cm,bolt_to_cap_cm,Bolt_to_sensor_depth_cm,Bolt_to_ground_cm
 C,848306,PTR,W,Wetland,41.501612,-83.044404,RTK-derived,84,170,10,,
 B,848529,PTR,TR,Transition,41.501965,-83.045602,RTK-derived,97,342,9.5,,
@@ -36,3 +36,8 @@ B,1011979,SWH,TR,Transition,,,,105,180,8,,
 685442,685442,TMP,C,,,,,,,,526,89
 951977,951977,TMP,SHORE,,,,,,,,,
 680514,680514,TMP,SHORE,,,,,,,,160,54
+A,1206077,DLG,R1,,,,,104,663.2,13,,
+A,1205625,DLG,F1,,,,,103.8,673,13,,
+A,1206090,DLG,F3,,,,,100.2,647,13,,
+A,1206086,DLG,F2,,,,,102.8,676,13,,
+A,1206084,DLG,R2,,,,,100.8,674.4,13,,
