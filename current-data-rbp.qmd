@@ -321,6 +321,8 @@ if(nrow(teros) > 0) {
            name = gsub("Teros.+\\(", "", name),
            name = gsub(")", "", name)) %>% 
     separate(name, into = c("Port", "sensor"), convert = FALSE) %>% 
+    # Ports 3 and 4 in W are not installed (constant zeros, no metadata)
+    filter(!(Plot == "W" & Port %in% c("3", "4"))) %>% 
     left_join(TEROS_METADATA, by = c("Site", "Plot", "Logger", "Port")) %>% 
     #filter(!is.na(ID)) %>% 
     # the join changes Plot back to character
