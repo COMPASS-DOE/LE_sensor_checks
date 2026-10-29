@@ -410,8 +410,14 @@ if("TMP" %in% troll_long$Site) {
 troll_long %>% 
     filter(Site != "TMP") %>% 
     mutate(Instrument_ID = substr(Table, nchar(Table), nchar(Table))) %>% 
+    # AquaTROLL 200 tables get their own ID; 600 tables use the A/B/C suffix
+    mutate(Instrument_ID = if_else(Table == "WaterLevel200", "200",
+                                 substr(Table, nchar(Table), nchar(Table)))) %>% 
     # add TMP data back in
     bind_rows(troll_long_tmp) %>% 
+  # label instrument model from the table name (works for TMP too)
+    mutate(Instrument = if_else(grepl("200", Table), 
+                                "AquaTROLL 200", "AquaTROLL 600")) %>%
     # remove "600" with optional A/B/C
     mutate(name = gsub("[26]00[ABC]?$", "", name)) %>%
     # compute water level
@@ -594,7 +600,8 @@ if(nrow(exo) > 0) {
     exo_long
   
 exo_long_current <- exo_long %>%
-      filter(
+   #current no sonde installed at PTR
+      filter(Site != "PTR",
     TIMESTAMP >= Sys.time() - days(7),
     TIMESTAMP <= Sys.time()
   )
