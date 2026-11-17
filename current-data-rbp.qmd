@@ -37,7 +37,7 @@ PLOT_FACTOR_LEVELS <- c("C", "F", "S",                # TMP plots
                         "F1", "F2", "F3", "R1", "R2") # DLG plots
 
 # User can specify groups of synoptic sites: CB or LE
-if(length(SITES == 1)) {
+if(length(SITES) == 1) {
   if(SITES == "CB") {
     SITES <- c("SWH", "GWI", "MSM", "GCW")
   } else if(SITES == "LE") {
@@ -81,11 +81,17 @@ sf_cb <- read_csv(SF_CB_FILE, col_types = "cccc_cdd__c__")
 SF_LE_FILE <- "ancillary-data/LE_sapflow_inventory - Copy of Sheet1.csv"
 message("Reading ", SF_LE_FILE)
 sf_le <- read_csv(SF_LE_FILE, col_types = "ccdcdcc__")
+# DLG: data Logger column is the PakBus number, not the "DLG_F1" name
+SF_DLG_FILE <- "ancillary-data/DELUGE_SF_Monitoring.csv"
+message("Reading ", SF_DLG_FILE)
+sf_dlg <- read_csv(SF_DLG_FILE, col_types = cols(.default = "c"))
+
 sf_tmp %>%
   mutate(Site = "TMP") %>% 
   select(Site, Logger, Port, Sapflux_ID, Tree_ID) %>% 
   bind_rows(sf_cb %>% select(Site, Logger, Port, Sapflux_ID, Tree_ID)) %>% 
   bind_rows(sf_le %>% select(Site, Logger, Port, Sapflux_ID = Tree_Code, Tree_ID = Tag)) %>% 
+  bind_rows(sf_dlg %>% transmute(Site = "DLG", Logger = PakBus, Port = as.double(Port),Sapflux_ID = Species_Code, Tree_ID)) %>% 
   mutate(Tree = paste0(Sapflux_ID, " (", Tree_ID, ")")) %>% 
   select(-Sapflux_ID, -Tree_ID) ->
   SF_METADATA
@@ -493,8 +499,7 @@ if(nrow(troll) > 0) {
            Instrument_ID = if_else(Table == "WaterLevel200",
                                    as.character(match(Sensor200, LETTERS)),
                                    Instrument_ID)) %>%
-    # AquaTROLL 200: only sensor E is installed at CRC UP; drop empty slots A-D, F-I
-    filter(Table != "WaterLevel200" | Sensor200 == "E") %>%
+    filter(Table != "WaterLevel200" | !is.na(value)) %>%
     # add TMP data back in
     bind_rows(troll_long_tmp) %>% 
     # label instrument model from the table name (works for TMP too)
@@ -576,21 +581,22 @@ if(nrow(troll) > 0) {
     }
   }
   
-  # AquaTROLL 200 (CRC UP, sensor E): all variables in a single panel figure
+  # AquaTROLL 200: all variables in a single panel figure, one color per sensor
   # AquaTROLL 200 has no DO (RDO) or pH sensors: drop them from its panel
   x200 <- filter(troll_long_current, Instrument == "AquaTROLL 200",
                  !name %in% c("RDO_concen", "pH"))
   if(nrow(x200) > 0) {
     x200_all <- bind_rows(
       x200,
-      x200 %>% distinct(Site, Plot, TIMESTAMP, water_level_cm, WL_status) %>%
+      x200 %>% distinct(Site, Plot, Instrument_ID, TIMESTAMP, water_level_cm, WL_status) %>%
         mutate(name = "water_level_cm", value = water_level_cm)
     )
-    p <- ggplot(x200_all, aes(TIMESTAMP, value, color = WL_status)) +
+    p <- ggplot(x200_all, aes(TIMESTAMP, value, color = Instrument_ID, shape = WL_status)) +
       facet_grid(name ~ paste(Site, Plot), scales = "free_y") +
       geom_point(na.rm = TRUE) +
-      scale_color_manual("WL below sensor", values = WL_COLORS) +
-      ylab(NULL) +
+      scale_shape_manual("WL status",
+                         values = c("OK" = 16, "Below sensor" = 4, "No well dimensions" = 1)) +
+      labs(color = "Sensor (ID)", y = NULL) +
       ggtitle("AquaTROLL 200") +
       theme(axis.text.x = element_text(angle = 90))
     print(p)
