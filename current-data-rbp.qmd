@@ -639,51 +639,68 @@ no_data_check(redox, "Redox")
 #| fig-width: 9
 #| fig-height: 8
 
-#redox colors 
-# Each probe reads 2 depths; mux ports 1H-12H wired in order.
-# Channels 13-24 are unconnected mux channels (logger loops to 24) -> dropped
+#redox_colors <- c("darkgoldenrod1", "darkorange", "chocolate4",
+ #                 "chartreuse2", "green4", "palegreen2", 
+  #                "deepskyblue1", "dodgerblue3", "blue1", 
+   #               "darkorchid2", "orchid3", "mediumpurple4")
+
+#Roberta -> fixing differences between DLG and LE redox depth and the CRC-UP F4 troublemaker :(
+# Each probe reads 2 depths; ports 1H-12H wired in order. Only channels 1-12 are wired;
+# 13-24 are unconnected mux channels (floating) when the logger loops to 24.
 redox_assignments <- tribble(~depth_set, ~number, ~Depth, ~Rep, ~Probe,
-                             "LE",  1, 10, 1, "10,25",  "LE",  2, 25, 1, "10,25",
-                             "LE",  3, 30, 1, "30,45",  "LE",  4, 45, 1, "30,45",
-                             "LE",  5, 10, 2, "10,25",  "LE",  6, 25, 2, "10,25",
-                             "LE",  7, 30, 2, "30,45",  "LE",  8, 45, 2, "30,45",
-                             "LE",  9, 10, 3, "10,25",  "LE", 10, 25, 3, "10,25",
-                             "LE", 11, 30, 3, "30,45",  "LE", 12, 45, 3, "30,45",
-                             "DLG", 1, 10, 1, "10,20",  "DLG", 2, 20, 1, "10,20",
-                             "DLG", 3, 30, 1, "30,40",  "DLG", 4, 40, 1, "30,40",
-                             "DLG", 5, 10, 2, "10,20",  "DLG", 6, 20, 2, "10,20",
-                             "DLG", 7, 30, 2, "30,40",  "DLG", 8, 40, 2, "30,40",
-                             "DLG", 9, 10, 3, "10,20",  "DLG",10, 20, 3, "10,20",
-                             "DLG",11, 30, 3, "30,40",  "DLG",12, 40, 3, "30,40")
+                             # LE sites (CRC TR/W, PTR, OWC): probes "10,25" and "30,45"
+                             "LE",   1, 10, 1, "10,25",
+                             "LE",   2, 25, 1, "10,25",
+                             "LE",   3, 30, 1, "30,45",
+                             "LE",   4, 45, 1, "30,45",
+                             "LE",   5, 10, 2, "10,25",
+                             "LE",   6, 25, 2, "10,25",
+                             "LE",   7, 30, 2, "30,45",
+                             "LE",   8, 45, 2, "30,45",
+                             "LE",   9, 10, 3, "10,25",
+                             "LE",  10, 25, 3, "10,25",
+                             "LE",  11, 30, 3, "30,45",
+                             "LE",  12, 45, 3, "30,45",
+                             # DLG sites and CRC UP: probes "10,20" and "30,40"
+                             "DLG",  1, 10, 1, "10,20",
+                             "DLG",  2, 20, 1, "10,20",
+                             "DLG",  3, 30, 1, "30,40",
+                             "DLG",  4, 40, 1, "30,40",
+                             "DLG",  5, 10, 2, "10,20",
+                             "DLG",  6, 20, 2, "10,20",
+                             "DLG",  7, 30, 2, "30,40",
+                             "DLG",  8, 40, 2, "30,40",
+                             "DLG",  9, 10, 3, "10,20",
+                             "DLG", 10, 20, 3, "10,20",
+                             "DLG", 11, 30, 3, "30,40",
+                             "DLG", 12, 40, 3, "30,40")
 
 if(nrow(redox) > 0) {
-  redox %>% 
-    select(-BattV) %>% 
+  redox %>%
+    select(-BattV) %>%
     filter(Table == "Redox15") %>%  # per SJW: only look at 15 minutes data
-    pivotstep() %>% 
-    separate(name, into = c("which", "number"), extra = "drop") %>% 
-    filter(which %in% c("RedoxRa", "RedoxRb")) %>%
-    mutate(number = as.numeric(number),
-           depth_set = if_else(Site == "DLG" | (Site == "CRC" & Plot == "UP"), "DLG", "LE")) %>% 
-    filter(number <= 12) %>%
-    left_join(redox_assignments, by = c("depth_set", "number")) %>% 
-    mutate(Depth = factor(Depth),
-           Depth_Rep = factor(paste(Depth, Rep, sep = "-"))) ->
+    pivotstep() %>%
+    separate(name, into = c("which", "number"), extra = "drop") %>%
+    mutate(number = as.numeric(number)) %>%
+    filter(number <= 12) %>%  # 13-24 are unwired mux channels
+    mutate(depth_set = if_else(Site == "DLG" | (Site == "CRC" & Plot == "UP"),
+                               "DLG", "LE")) %>%
+    left_join(redox_assignments, by = c("depth_set", "number")) %>%
+    distinct(Site, Plot, TIMESTAMP, which, number, .keep_all = TRUE) %>%  # drop duplicated rows
+    mutate(Depth = as.factor(Depth),
+           Depth_Rep = as.factor(paste(Depth, Rep, sep = "-"))) ->
     redox_long
   
-redox_long_current <- redox_long %>%
-      filter(
-    TIMESTAMP >= Sys.time() - days(7),
-    TIMESTAMP <= Sys.time()
-  )
-  
+  redox_long_current <- redox_long %>%
+    filter(TIMESTAMP >= Sys.time() - days(7),
+           TIMESTAMP <= Sys.time())
   
   for(site in unique(redox_long_current$Site)) {
     redox_site <- filter(redox_long_current, Site == site)
-    p <- ggplot(redox_site, aes(TIMESTAMP, value, color = Depth_Rep)) +
+    p <- ggplot(redox_site, aes(TIMESTAMP, value, color = Depth, shape = factor(Rep))) +
       facet_grid(which ~ Plot) +
       geom_point(na.rm = TRUE) +
-      #scale_color_manual(values = redox_colors) + 
+      labs(shape = "Rep") +
       theme(axis.text.x = element_text(angle = 90)) +
       ggtitle(paste(site, "Redox"))
     print(p)
