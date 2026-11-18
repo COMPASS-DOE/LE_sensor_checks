@@ -180,7 +180,7 @@ read_files <- function(type, sitelist = SITES, path = PATH) {
     if(site == "DLG") {
       SUBPATH <- "COMPASS_PNNL_Data"
       CURRENT <- "current_data"
-      PATTERN <- paste0(site, "-.*_[0-9]+_", type)
+      PATTERN <- paste0(site, "-.*_[0-9]+_.*", type) # different file names order for stem and soil teros between DLG and CRC UP
     } else if(site %in% c("PTR", "CRC", "OWC", "SWH", "GWI", "MSM", "GCW")) {
       SUBPATH <- "COMPASS_PNNL_Data"
       CURRENT <- "current_data"
