@@ -454,7 +454,23 @@ if(nrow(teros) > 0) {
 #| output: "asis"
 troll <- read_files("WaterLevel")
 no_data_check(troll, "AquaTROLL")
+radar <- read_files("Level_Troll")
+no_data_check(radar, "Radar level")
 ```
+
+p \<- ggplot(filter(radar_long_current, name == "Water_above_ground_cm"),
+
+aes(TIMESTAMP, value, color = Plot)) +
+
+geom_line(na.rm = TRUE) +
+
+coord_cartesian(ylim = c(0, 30)) +
+
+labs(y = "Water above ground (cm)", title = "Radar level sensor - water above ground (0-30 cm)") +
+
+theme(axis.text.x = element_text(angle = 90))
+
+print(p)
 
 ```{r troll-plots}
 #| fig-width: 9
@@ -483,6 +499,36 @@ if(nrow(troll) > 0) {
       troll_long_tmp
   } else {
     troll_long_tmp <- NULL
+  }
+  
+  # Radar level sensor: depth to water, signal-to-noise and tilt, one panel per plot
+  if(nrow(radar) > 0) {
+    radar %>%
+      select(-any_of("BattV")) %>%
+      pivotstep() %>%
+      mutate(value = if_else(value %in% c(-9999, -99999), NA_real_, value),
+             Instrument = "Radar level", Instrument_ID = "R") %>%
+      filter(TIMESTAMP >= Sys.time() - days(7),
+             TIMESTAMP <= Sys.time()) ->
+      radar_long_current
+    
+    # Water above ground (cm): radars mounted 150 cm above ground in all DLG plots
+    RADAR_MOUNT_CM <- 150
+    radar_long_current <- bind_rows(
+      radar_long_current,
+      radar_long_current %>%
+        filter(name == "Depth_to_Water_m") %>%
+        mutate(name = "Water_above_ground_cm",
+               value = round(RADAR_MOUNT_CM - value, 1)) # use value * 100 if reported in meters
+    )
+    
+    p <- ggplot(radar_long_current, aes(TIMESTAMP, value)) +
+      facet_grid(name ~ paste(Site, Plot), scales = "free_y") +
+      geom_point(na.rm = TRUE) +
+      ylab(NULL) +
+      ggtitle("Radar level sensor") +
+      theme(axis.text.x = element_text(angle = 90))
+    print(p)
   }
   
   troll_long %>% 
@@ -602,12 +648,23 @@ if(nrow(troll) > 0) {
     print(p)
   }
 }
+
+#if we want to see only radar troll
+# Zoom: water above ground, 0-30 cm
+# p <- ggplot(filter(radar_long_current, name == "Water_above_ground_cm"),
+#             aes(TIMESTAMP, value, color = Plot)) +
+#   geom_line(na.rm = TRUE) +
+#   coord_cartesian(ylim = c(0, 30)) +
+#   labs(y = "Water above ground (cm)", title = "Radar level sensor - water above ground (0-30 cm)") +
+#   theme(axis.text.x = element_text(angle = 90))
+# print(p)
 ```
 
 ```{r troll-tables}
 
-if(nrow(troll) > 0) {
-  troll_long_current %>% 
+if(nrow(troll) > 0 || nrow(radar) > 0) {
+  bind_rows(if(exists("troll_long_current")) troll_long_current,
+            if(exists("radar_long_current")) radar_long_current) %>%
     # Keep AquaTROLL 200 without DO/pH (not measured by that model)
     filter(!(Instrument == "AquaTROLL 200" & name %in% c("RDO_concen", "pH"))) %>%
     group_by(Site, Instrument, Plot, name) %>% 
