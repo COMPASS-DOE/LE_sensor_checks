@@ -297,6 +297,7 @@ if(nrow(sf) > 0) {
     print(p)
   }
 }
+
 ```
 
 ```{r sf-table}
